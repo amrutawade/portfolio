@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Amruta Wade — Software Engineer specializing in Babylon.js, WebGL, and interactive 3D web experiences built with TypeScript."
+    />
+    <meta name="theme-color" content="#0b0f1a" />
+    <title>Amruta Wade — Software Engineer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Fixed WebGL canvas rendered by Babylon.js -->
+    <canvas id="scene" aria-hidden="true"></canvas>
+
+    <header class="nav">
+      <a class="nav__brand" href="#top">AW<span>.</span></a>
+      <nav class="nav__links">
+        <a href="#about">About</a>
+        <a href="#skills">Skills</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+        <a class="nav__cta" href="https://github.com/amrutawade" target="_blank" rel="noopener">
+          GitHub
+        </a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <!-- HERO -->
+      <section class="hero">
+        <div class="hero__inner">
+          <p class="hero__eyebrow">Software Engineer · 3D Web</p>
+          <h1 class="hero__title">
+            Amruta Wade
+          </h1>
+          <p class="hero__lead">
+            I build fast, interactive <strong>3D experiences for the web</strong> with
+            <strong>Babylon.js</strong>, WebGL, and TypeScript — turning complex scenes
+            into smooth, accessible products.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#projects">View Projects</a>
+            <a class="btn btn--ghost" href="https://github.com/amrutawade" target="_blank" rel="noopener">
+              github.com/amrutawade
+            </a>
+          </div>
+          <p class="hero__hint">Drag the scene to orbit ·  it's rendered live with Babylon.js</p>
+        </div>
+      </section>
+
+      <!-- ABOUT -->
+      <section id="about" class="section">
+        <div class="section__head">
+          <span class="section__index">01</span>
+          <h2>About</h2>
+        </div>
+        <div class="about">
+          <p>
+            I'm a software engineer focused on the intersection of graphics and the web.
+            I love taking heavy, real-time 3D and making it feel effortless in the browser —
+            from architectural visualizations and product configurators to games and data-driven
+            scenes.
+          </p>
+          <p>
+            My core toolkit is <strong>Babylon.js + TypeScript</strong>, backed by strong
+            fundamentals in rendering, performance profiling, and clean, typed architecture.
+            The background of this page is a live Babylon.js scene — no video, no image.
+          </p>
+        </div>
+      </section>
+
+      <!-- SKILLS -->
+      <section id="skills" class="section">
+        <div class="section__head">
+          <span class="section__index">02</span>
+          <h2>Skills</h2>
+        </div>
+        <div class="skills" id="skills-grid"><!-- injected by TS --></div>
+      </section>
+
+      <!-- PROJECTS -->
+      <section id="projects" class="section">
+        <div class="section__head">
+          <span class="section__index">03</span>
+          <h2>Projects</h2>
+        </div>
+        <div class="projects" id="projects-grid"><!-- injected by TS --></div>
+      </section>
+
+      <!-- CONTACT -->
+      <section id="contact" class="section section--contact">
+        <div class="section__head">
+          <span class="section__index">04</span>
+          <h2>Contact</h2>
+        </div>
+        <p class="contact__lead">
+          Interested in 3D web work, a WebGL prototype, or performance help? Let's talk.
+        </p>
+        <div class="contact__links">
+          <a class="btn btn--primary" href="mailto:hello@example.com">Email me</a>
+          <a class="btn btn--ghost" href="https://github.com/amrutawade" target="_blank" rel="noopener">GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>© <span id="year"></span> Amruta Wade</span>
+      <span>Built with Babylon.js · TypeScript · Vite</span>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
