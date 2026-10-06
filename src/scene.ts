@@ -1,176 +1,635 @@
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { Scene } from "@babylonjs/core/scene";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
-import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { PointLight } from "@babylonjs/core/Lights/pointLight";
-import { Vector3, Color3, Color4 } from "@babylonjs/core/Maths/math";
-import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
+import {
+  Vector3,
+  Color3,
+  Color4,
+} from "@babylonjs/core/Maths/math";
+import { PointsCloudSystem } from "@babylonjs/core/Particles/pointsCloudSystem";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
 
-// Side-effect imports required for the features used above.
-import "@babylonjs/core/Rendering/edgesRenderer";
-import "@babylonjs/core/Meshes/thinInstanceMesh";
-
-interface FloatingNode {
-  mesh: Mesh;
-  spin: Vector3;
-  bobPhase: number;
-  bobAmp: number;
+interface ParticleData {
+  radius: number;
+  angle: number;
+  speed: number;
+  phase: number;
+  wave: number;
   baseY: number;
 }
 
-/**
- * Creates and runs the live Babylon.js background scene.
- * Returns a disposer so callers can tear it down if needed.
- */
-export function createScene(canvas: HTMLCanvasElement): () => void {
+export function createScene(
+  canvas: HTMLCanvasElement
+): () => void {
+  // =====================================================
+  // ENGINE
+  // =====================================================
+
   const engine = new Engine(canvas, true, {
     preserveDrawingBuffer: false,
     stencil: false,
     antialias: true,
   });
-  engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));
+
+  engine.setHardwareScalingLevel(
+    1 / Math.min(window.devicePixelRatio || 1, 2)
+  );
+
+  // =====================================================
+  // SCENE
+  // =====================================================
 
   const scene = new Scene(engine);
-  // Transparent clear color so the CSS gradient shows through the canvas.
-  scene.clearColor = new Color4(0, 0, 0, 0);
+
+  scene.clearColor = new Color4(
+    0,
+    0,
+    0,
+    0
+  );
+
+  // =====================================================
+  // CAMERA
+  // =====================================================
 
   const camera = new ArcRotateCamera(
     "camera",
-    -Math.PI / 2.2,
+    -Math.PI / 2,
     Math.PI / 2.4,
-    16,
+    20,
     Vector3.Zero(),
     scene
   );
-  camera.attachControl(canvas, true);
-  camera.lowerRadiusLimit = 10;
-  camera.upperRadiusLimit = 26;
+
+  camera.attachControl(
+    canvas,
+    true
+  );
+
+  camera.lowerRadiusLimit = 8;
+  camera.upperRadiusLimit = 30;
+
   camera.wheelDeltaPercentage = 0.01;
+
   camera.useAutoRotationBehavior = true;
+
   if (camera.autoRotationBehavior) {
-    camera.autoRotationBehavior.idleRotationSpeed = 0.12;
+    camera.autoRotationBehavior.idleRotationSpeed = 0.08;
     camera.autoRotationBehavior.idleRotationWaitTime = 1500;
   }
 
-  const hemi = new HemisphericLight("hemi", new Vector3(0, 1, 0), scene);
-  hemi.intensity = 0.55;
-  hemi.diffuse = new Color3(0.6, 0.7, 1.0);
-  hemi.groundColor = new Color3(0.1, 0.1, 0.25);
+  // =====================================================
+  // POINT CLOUD MATERIAL
+  // =====================================================
 
-  const key = new PointLight("key", new Vector3(6, 8, -6), scene);
-  key.intensity = 0.9;
-  key.diffuse = new Color3(0.4, 0.8, 1.0);
+  const material =
+    new StandardMaterial(
+      "pointCloudMaterial",
+      scene
+    );
 
-  const rim = new PointLight("rim", new Vector3(-8, -4, 6), scene);
-  rim.intensity = 0.7;
-  rim.diffuse = new Color3(0.9, 0.35, 0.9);
+  material.pointsCloud = true;
 
-  const glow = new GlowLayer("glow", scene);
-  glow.intensity = 0.6;
+  material.pointSize = 4;
 
-  // Palette for the floating nodes.
-  const palette = [
-    new Color3(0.35, 0.78, 1.0),
-    new Color3(0.62, 0.51, 1.0),
-    new Color3(0.98, 0.42, 0.79),
-    new Color3(0.36, 0.94, 0.83),
-  ];
+  material.disableLighting = true;
 
-  const nodes: FloatingNode[] = [];
-  const rand = mulberry32(20240723);
+  material.emissiveColor =
+    new Color3(
+      0.2,
+      0.7,
+      1
+    );
 
-  const makeMaterial = (color: Color3): StandardMaterial => {
-    const mat = new StandardMaterial("mat", scene);
-    mat.diffuseColor = color.scale(0.5);
-    mat.emissiveColor = color.scale(0.55);
-    mat.specularColor = new Color3(1, 1, 1);
-    mat.specularPower = 64;
-    return mat;
+  // =====================================================
+  // GLOW
+  // =====================================================
+
+  const glow =
+    new GlowLayer(
+      "pointGlow",
+      scene
+    );
+
+  glow.intensity = 0.8;
+
+  // =====================================================
+  // POINT CLOUD
+  // =====================================================
+  //
+  // IMPORTANT:
+  //
+  // The second argument controls point size.
+  //
+  // 4 = clearly visible.
+  //
+  // =====================================================
+
+  const pcs =
+    new PointsCloudSystem(
+      "portfolioCloud",
+      4,
+      scene
+    );
+
+  pcs.computeParticleRotation = false;
+
+  pcs.computeParticleTexture = false;
+
+  // =====================================================
+  // RANDOM
+  // =====================================================
+
+  const random =
+    mulberry32(20240723);
+
+  // =====================================================
+  // PARTICLE COUNT
+  // =====================================================
+
+  const PARTICLE_COUNT = 10000;
+
+  // =====================================================
+  // PARTICLE DATA
+  // =====================================================
+
+  const data: ParticleData[] =
+    [];
+
+  // =====================================================
+  // CREATE POINTS
+  // =====================================================
+  //
+  // We deliberately use `any` here because Babylon's
+  // addPoints() callback is itself typed as `any` in the
+  // current PointsCloudSystem API.
+  //
+  // This avoids importing the non-exported CloudPoint type.
+  //
+  // =====================================================
+
+  pcs.addPoints(
+    PARTICLE_COUNT,
+    (particle: any, index: number) => {
+      // -----------------------------------------------
+      // DISTRIBUTION
+      // -----------------------------------------------
+
+      const stream =
+        index % 4;
+
+      let radius: number;
+
+      let angle: number;
+
+      // Central cloud
+      if (stream === 0) {
+        radius =
+          Math.pow(
+            random(),
+            1.7
+          ) * 4.5;
+
+        angle =
+          random() *
+          Math.PI *
+          2;
+      }
+
+      // Inner ring
+      else if (stream === 1) {
+        radius =
+          4 +
+          random() * 3;
+
+        angle =
+          random() *
+          Math.PI *
+          2;
+      }
+
+      // Outer ring
+      else if (stream === 2) {
+        radius =
+          6 +
+          random() * 3;
+
+        angle =
+          random() *
+          Math.PI *
+          2;
+      }
+
+      // Spiral
+      else {
+        radius =
+          1 +
+          random() * 8;
+
+        angle =
+          radius * 0.8 +
+          random() *
+            Math.PI *
+            2;
+      }
+
+      // -----------------------------------------------
+      // POSITION
+      // -----------------------------------------------
+
+      const x =
+        Math.cos(angle) *
+        radius;
+
+      const z =
+        Math.sin(angle) *
+        radius;
+
+      const y =
+        (random() - 0.5) *
+        3;
+
+      particle.position =
+        new Vector3(
+          x,
+          y,
+          z
+        );
+
+      // -----------------------------------------------
+      // COLOR
+      // -----------------------------------------------
+
+      const colorIndex =
+        index % 4;
+
+      if (colorIndex === 0) {
+        particle.color =
+          new Color4(
+            0.1,
+            0.8,
+            1.0,
+            1.0
+          );
+      } else if (
+        colorIndex === 1
+      ) {
+        particle.color =
+          new Color4(
+            0.3,
+            0.5,
+            1.0,
+            1.0
+          );
+      } else if (
+        colorIndex === 2
+      ) {
+        particle.color =
+          new Color4(
+            0.7,
+            0.3,
+            1.0,
+            1.0
+          );
+      } else {
+        particle.color =
+          new Color4(
+            1.0,
+            0.25,
+            0.75,
+            1.0
+          );
+      }
+
+      // -----------------------------------------------
+      // ANIMATION DATA
+      // -----------------------------------------------
+
+      data.push({
+        radius,
+
+        angle,
+
+        speed:
+          0.08 +
+          random() * 0.2,
+
+        phase:
+          random() *
+          Math.PI *
+          2,
+
+        wave:
+          0.2 +
+          random() * 0.8,
+
+        baseY: y,
+      });
+    }
+  );
+
+  // =====================================================
+  // MOUSE
+  // =====================================================
+
+  let mouseX = 0;
+
+  let mouseY = 0;
+
+  const onPointerMove = (
+    event: PointerEvent
+  ) => {
+    const rect =
+      canvas.getBoundingClientRect();
+
+    mouseX =
+      ((event.clientX -
+        rect.left) /
+        rect.width -
+        0.5) *
+      2;
+
+    mouseY =
+      ((event.clientY -
+        rect.top) /
+        rect.height -
+        0.5) *
+      2;
   };
 
-  // A central "core" polyhedron.
-  const core = MeshBuilder.CreatePolyhedron("core", { type: 3, size: 2.2 }, scene);
-  core.material = makeMaterial(palette[0]);
-  core.enableEdgesRendering();
-  core.edgesWidth = 6;
-  core.edgesColor = new Color4(0.7, 0.9, 1, 0.9);
-  nodes.push({ mesh: core, spin: new Vector3(0, 0.15, 0.05), bobPhase: 0, bobAmp: 0.4, baseY: 0 });
+  canvas.addEventListener(
+    "pointermove",
+    onPointerMove
+  );
 
-  // Orbiting satellites of varied shapes.
-  const count = 9;
-  for (let i = 0; i < count; i++) {
-    const kind = i % 3;
-    let mesh: Mesh;
-    if (kind === 0) {
-      mesh = MeshBuilder.CreateTorus("t" + i, { diameter: 1.6, thickness: 0.35, tessellation: 24 }, scene);
-    } else if (kind === 1) {
-      mesh = MeshBuilder.CreateIcoSphere("s" + i, { radius: 0.85, subdivisions: 2 }, scene);
-    } else {
-      mesh = MeshBuilder.CreateBox("b" + i, { size: 1.2 }, scene);
-    }
-    const color = palette[(i + 1) % palette.length];
-    mesh.material = makeMaterial(color);
+  // =====================================================
+  // BUILD POINT CLOUD
+  // =====================================================
 
-    const angle = (i / count) * Math.PI * 2;
-    const radius = 6 + rand() * 3;
-    const y = (rand() - 0.5) * 6;
-    mesh.position = new Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+  let cloudMesh:
+    typeof pcs.mesh;
 
-    nodes.push({
-      mesh,
-      spin: new Vector3((rand() - 0.5) * 0.6, (rand() - 0.5) * 0.6, (rand() - 0.5) * 0.6),
-      bobPhase: rand() * Math.PI * 2,
-      bobAmp: 0.4 + rand() * 0.8,
-      baseY: y,
+  pcs
+    .buildMeshAsync(material)
+    .then((mesh) => {
+      cloudMesh = mesh;
+
+      // Make sure Babylon doesn't cull the cloud.
+      mesh.alwaysSelectAsActiveMesh =
+        true;
+
+      // Start with a visible cloud.
+      pcs.setParticles();
     });
-  }
 
-  let t = 0;
-  scene.onBeforeRenderObservable.add(() => {
-    const dt = engine.getDeltaTime() / 1000;
-    t += dt;
-    for (const n of nodes) {
-      n.mesh.rotation.x += n.spin.x * dt;
-      n.mesh.rotation.y += n.spin.y * dt;
-      n.mesh.rotation.z += n.spin.z * dt;
-      n.mesh.position.y = n.baseY + Math.sin(t + n.bobPhase) * n.bobAmp;
+  // =====================================================
+  // TIME
+  // =====================================================
+
+  let time = 0;
+
+  // =====================================================
+  // PARTICLE UPDATE
+  // =====================================================
+
+  pcs.updateParticle = (
+    particle: any
+  ) => {
+    const index =
+      particle.idx;
+
+    const p =
+      data[index];
+
+    if (!p) {
+      return particle;
     }
-  });
 
-  engine.runRenderLoop(() => scene.render());
+    // -----------------------------------------------
+    // ORBIT
+    // -----------------------------------------------
 
-  const onResize = () => engine.resize();
-  window.addEventListener("resize", onResize);
+    const angle =
+      p.angle +
+      time * p.speed;
 
-  // Pause rendering when the tab is hidden to save battery/CPU.
+    const radius =
+      p.radius +
+      Math.sin(
+        time * 0.4 +
+          p.phase
+      ) *
+        0.12;
+
+    let x =
+      Math.cos(angle) *
+      radius;
+
+    let z =
+      Math.sin(angle) *
+      radius;
+
+    // -----------------------------------------------
+    // FLOATING MOTION
+    // -----------------------------------------------
+
+    let y =
+      p.baseY +
+      Math.sin(
+        time * 0.8 +
+          p.phase
+      ) *
+        p.wave;
+
+    // -----------------------------------------------
+    // SPIRAL
+    // -----------------------------------------------
+
+    const spiral =
+      Math.sin(
+        radius * 1.5 -
+          time * 1.2
+      ) *
+      0.3;
+
+    x +=
+      Math.cos(
+        angle +
+          Math.PI / 2
+      ) *
+      spiral;
+
+    z +=
+      Math.sin(
+        angle +
+          Math.PI / 2
+      ) *
+      spiral;
+
+    // -----------------------------------------------
+    // MOUSE PARALLAX
+    // -----------------------------------------------
+
+    x +=
+      mouseX *
+      radius *
+      0.06;
+
+    y -=
+      mouseY *
+      radius *
+      0.06;
+
+    // -----------------------------------------------
+    // POSITION
+    // -----------------------------------------------
+
+    particle.position.x =
+      x;
+
+    particle.position.y =
+      y;
+
+    particle.position.z =
+      z;
+
+    return particle;
+  };
+
+  // =====================================================
+  // RENDER LOOP
+  // =====================================================
+
+  const render = () => {
+    const dt =
+      engine.getDeltaTime() /
+      1000;
+
+    time += dt;
+
+    // -----------------------------------------------
+    // ONLY UPDATE AFTER PCS IS READY
+    // -----------------------------------------------
+
+    if (pcs.mesh) {
+      pcs.setParticles();
+
+      pcs.mesh.rotation.y +=
+        dt * 0.025;
+
+      pcs.mesh.rotation.x =
+        Math.sin(
+          time * 0.15
+        ) * 0.08;
+    }
+
+    scene.render();
+  };
+
+  engine.runRenderLoop(
+    render
+  );
+
+  // =====================================================
+  // RESIZE
+  // =====================================================
+
+  const onResize = () => {
+    engine.resize();
+  };
+
+  window.addEventListener(
+    "resize",
+    onResize
+  );
+
+  // =====================================================
+  // VISIBILITY
+  // =====================================================
+
   const onVisibility = () => {
     if (document.hidden) {
       engine.stopRenderLoop();
     } else {
-      engine.runRenderLoop(() => scene.render());
+      engine.runRenderLoop(
+        render
+      );
     }
   };
-  document.addEventListener("visibilitychange", onVisibility);
+
+  document.addEventListener(
+    "visibilitychange",
+    onVisibility
+  );
+
+  // =====================================================
+  // CLEANUP
+  // =====================================================
 
   return () => {
-    window.removeEventListener("resize", onResize);
-    document.removeEventListener("visibilitychange", onVisibility);
+    canvas.removeEventListener(
+      "pointermove",
+      onPointerMove
+    );
+
+    window.removeEventListener(
+      "resize",
+      onResize
+    );
+
+    document.removeEventListener(
+      "visibilitychange",
+      onVisibility
+    );
+
+    pcs.dispose();
+
+    glow.dispose();
+
     scene.dispose();
+
     engine.dispose();
   };
 }
 
-/** Small seeded PRNG so the layout is stable between reloads. */
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
+// =======================================================
+// SEEDED RANDOM
+// =======================================================
+
+function mulberry32(
+  seed: number
+): () => number {
+  let a =
+    seed >>> 0;
+
   return () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let x = Math.imul(a ^ (a >>> 15), 1 | a);
-    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    a =
+      (a +
+        0x6d2f5f5b) |
+      0;
+
+    let t =
+      Math.imul(
+        a ^
+          (a >>> 15),
+        1 | a
+      );
+
+    t =
+      (t +
+        Math.imul(
+          t ^
+            (t >>> 7),
+          61 | t
+        )) ^
+      t;
+
+    return (
+      ((t ^
+        (t >>> 14)) >>>
+        0) /
+      4294967296
+    );
   };
 }
