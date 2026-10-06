@@ -367,13 +367,10 @@ export function createScene(
   // BUILD POINT CLOUD
   // =====================================================
 
-  let cloudMesh:
-    typeof pcs.mesh;
 
   pcs
     .buildMeshAsync(material)
     .then((mesh) => {
-      cloudMesh = mesh;
 
       // Make sure Babylon doesn't cull the cloud.
       mesh.alwaysSelectAsActiveMesh =
